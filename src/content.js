@@ -83,7 +83,7 @@ export const PROJECTS = [
   {
     name: 'This portfolio: a playable game',
     desc: 'A pixel-art side-scroller where each block, checkpoint and fun fact reveals a part of my story, with a classic scrolling mode and a 3D moon.',
-    link: 'https://github.com/arushiye-bot/YOUR-REPO-NAME',   // TODO: your real repo name
+    link: 'https://github.com/arushiye-bot/Portfolio',   // TODO: your real repo name
     live: '',                                                // optional: your Vercel link
     tools: ['React', 'Vite', 'Framer Motion', 'three.js', 'React Three Fiber', 'HTML Canvas', 'Web Audio', 'GitHub', 'Vercel'],
   },
