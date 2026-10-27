@@ -1,12 +1,13 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { SITE, SECTIONS } from './content.js';
+import { SITE, SECTIONS, CHECKPOINTS } from './content.js';
 import { createGame } from './game.js';
 import { music } from './music.js';
 import SectionBody, { Links } from './components/SectionBody.jsx';
 import Checkpoint from './components/Checkpoint.jsx';
 
 const Classic = lazy(() => import('./components/Classic.jsx'));
+const getRecruiter = () => { try { return localStorage.getItem('recruiterMode') === '1'; } catch { return false; } };
 const getSaved = () => { try { return localStorage.getItem('visitorName') || ''; } catch { return ''; } };
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [prog, setProg] = useState(0);
   const [toast, setToast] = useState(null);
+  const [fact, setFact] = useState(null);
   const [card, setCard] = useState(null);
   const [cp, setCp] = useState(null);
   const [ended, setEnded] = useState(false);
@@ -24,21 +26,27 @@ export default function App() {
   const [classic, setClassic] = useState(false);
   const [visited, setVisited] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [recruiter, setRecruiter] = useState(getRecruiter);
+  const recruiterRef = useRef(recruiter);
+  recruiterRef.current = recruiter;
 
   useEffect(() => {
     const game = createGame(canvasRef.current, {
       onScore: setScore, onProgress: setProg,
       toast: (msg) => setToast({ id: Math.random(), msg }),
-      openSection: (id) => setCard(id), openCheckpoint: (i) => setCp(i), onEnd: () => setEnded(true),
+      fact: (text) => setFact({ id: Math.random(), text }),
+      openSection: (id) => setCard(id), openCheckpoint: (i) => { if (recruiterRef.current) setFact({ id: Math.random(), text: CHECKPOINTS[i].emoji + ' ' + CHECKPOINTS[i].highlight, star: true }); else setCp(i); }, onEnd: () => setEnded(true),
     });
     gameRef.current = game; window.__g = game;
     return () => game.destroy();
   }, []);
 
   useEffect(() => { const g = gameRef.current; if (!g) return; g.setPaused(stage !== 'play' || card !== null || cp !== null || ended || classic); g.setIdle(classic); }, [stage, card, cp, ended, classic]);
+  useEffect(() => { if (!fact) return; const t = setTimeout(() => setFact(null), 6500); return () => clearTimeout(t); }, [fact]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2300); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { const k = (e) => { if (e.key === 'Escape') { setCard(null); setMenu(false); } }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
 
+  const toggleRecruiter = () => setRecruiter((r) => { const n = !r; try { localStorage.setItem('recruiterMode', n ? '1' : '0'); } catch {} return n; });
   const toggleMusic = useCallback(() => setMusicOn(music.toggle()), []);
   const openClassic = (on) => {
     if (on) { setVisited(true); if (music.on) setMusicOn(music.toggle()); }
@@ -79,6 +87,7 @@ export default function App() {
                   <input name="name" defaultValue={saved.current} maxLength={14} placeholder="Your name" autoComplete="off" autoFocus />
                   <button type="submit" className="btn">Start ▶</button>
                 </form>
+                <button type="button" className={'rmode' + (recruiter ? ' on' : '')} onClick={toggleRecruiter}>{recruiter ? '✔ Recruiter mode on: no games, just highlights' : '👔 Recruiter mode: skip the games'}</button>
               </>
             ) : (
               <><h1>Welcome, {name}!</h1><p>Use ← → to walk, SPACE to jump. Have fun!</p></>
@@ -102,6 +111,7 @@ export default function App() {
               <motion.button key={s.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .04 * i }} onClick={() => jump(s.id)}><span>{s.short[0]}</span>{s.short}</motion.button>
             ))}
             <hr />
+            <button onClick={toggleRecruiter}>👔 Recruiter mode: <b>{recruiter ? 'ON' : 'OFF'}</b></button>
             <button onClick={toggleMusic}>♪ Music: <b>{musicOn ? 'ON' : 'OFF'}</b></button>
             <button onClick={() => openClassic(!classic)}>{classic ? '🎮 Back to the game' : '📜 Classic page'}</button>
           </motion.div>
@@ -110,6 +120,10 @@ export default function App() {
 
       <button id="music" className={musicOn ? 'on' : ''} aria-label="Toggle music" onClick={toggleMusic}>{musicOn ? '♪' : '♪̸'}</button>
       {!classic && <button id="skip" onClick={() => openClassic(true)}>📜 Skip to classic page</button>}
+
+      <AnimatePresence>
+        {fact && <motion.div className="factbar" key={fact.id} initial={{ opacity: 0, y: -24, x: '-50%', scale: .92 }} animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }} exit={{ opacity: 0, y: -16, x: '-50%' }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>{fact.star ? '' : '💡 '}{fact.text}</motion.div>}
+      </AnimatePresence>
 
       <AnimatePresence>
         {toast && <motion.div id="toast" key={toast.id} initial={{ opacity: 0, y: -14, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: -10, x: '-50%' }}>{toast.msg}</motion.div>}

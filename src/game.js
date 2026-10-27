@@ -1,4 +1,4 @@
-import { SITE, SECTIONS } from './content.js';
+import { SITE, SECTIONS, BRICK_FACTS } from './content.js';
 import { sfx } from './music.js';
 import { createView, createAtmos, rect, drawText, drawLabel, drawGhost, drawCoin, drawBrick, drawFlag, drawPine, spark, pop, updateParts, drawParts, clamp, GOLD } from './engine.js';
 
@@ -15,7 +15,7 @@ export function createGame(canvas, api) {
   const blocks = [];
   ZONES.forEach((z) => { const s = SECTIONS.find((q) => q.id === z.id);
     blocks.push({ x: z.x - 14, kind: 'brick', y: 0, bump: 0 }, { x: z.x, kind: 'q', section: s, y: 0, bump: 0, used: false }, { x: z.x + 14, kind: 'brick', y: 0, bump: 0 }); });
-  [250, 900, 1250, 1550, 2100, 2750].forEach((x, i) => blocks.push({ x, kind: i % 2 ? 'q' : 'brick', coin: true, y: 0, bump: 0, used: false }));
+  [250, 900, 1250, 1550, 2100, 2750].forEach((x, i) => blocks.push({ x, kind: i % 2 ? 'q' : 'brick', coin: true, fi: i % BRICK_FACTS.length, y: 0, bump: 0, used: false }));
   const coins = [];
   const addArc = (x0, n, gap, h) => { for (let i = 0; i < n; i++) coins.push({ x: x0 + i * gap, dy: h + Math.sin((i / (n - 1)) * Math.PI) * 22, got: false }); };
   pits.forEach((p) => addArc(p.x1 - 6, 5, 12, 26));
@@ -36,7 +36,10 @@ export function createGame(canvas, api) {
     if (b.section) {
       if (!b.used) { b.used = true; add(100, b.x + 7, b.y - 10); sfx('coin'); api.toast(`+100  ${b.section.title} unlocked!`); }
       later(0.35, () => api.openSection(b.section.id));
-    } else if (b.coin && !b.used) { b.used = true; add(20, b.x + 7, b.y - 10); sfx('coin'); }
+    } else if (b.coin) {
+      if (!b.used) { b.used = true; add(20, b.x + 7, b.y - 10); sfx('coin'); }
+      api.fact(BRICK_FACTS[b.fi]);
+    }
   }
 
   function update(dt) {
